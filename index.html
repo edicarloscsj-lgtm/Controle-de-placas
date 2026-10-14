@@ -173,7 +173,10 @@
                             <h3 class="font-bold text-slate-800 text-sm">Status Supabase</h3>
                             <span id="badgeCache" class="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-md font-bold">API Ativa</span>
                         </div>
-                        <p id="txtStatusConexao" class="text-xs text-slate-500 font-medium mb-3">Aguardando verificação...</p>
+                        <p id="txtStatusConexao" class="text-xs text-slate-500 font-medium mb-2">Aguardando verificação...</p>
+                        <button id="btnForcarSyncNuvem" onclick="sincronizarCacheLocalComSupabase()" class="hidden w-full mb-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2 px-3 rounded-xl text-xs transition shadow-sm flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-cloud-arrow-up"></i> Enviar Placas Locais para o Supabase
+                        </button>
                         <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs text-slate-600 space-y-1">
                             <div class="font-semibold text-slate-700">Link Permanente dos QR Codes:</div>
                             <code id="txtBaseUrl" class="text-[11px] text-blue-600 font-mono break-all block">Carregando...</code>
@@ -528,15 +531,16 @@
         <div class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-4 fade-in my-8">
             <div class="flex justify-between items-center border-b border-slate-100 pb-3">
                 <h3 class="font-bold text-base sm:text-lg text-rose-600 flex items-center gap-2">
-                    <i class="fa-solid fa-database"></i> Configuração Rápida da Tabela no Supabase
+                    <i class="fa-solid fa-database"></i> Liberar Permissão de Gravação no Supabase
                 </h3>
                 <button onclick="document.getElementById('modalSqlAjuda').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
             <p class="text-xs text-slate-600 leading-relaxed">
-                O Supabase retornou o erro: <code id="erroSqlDetalhe" class="bg-rose-50 text-rose-700 px-1.5 py-0.5 rounded font-mono"></code>.<br>
-                <strong>Nota importante:</strong> Seus QR Codes já foram gerados localmente e você já pode baixá-los na aba <b>Gráfica</b>! Mas para que fiquem salvos na nuvem do Supabase, copie o comando abaixo e rode no menu <b>SQL Editor</b> do seu painel Supabase:
+                O Supabase retornou o aviso: <code id="erroSqlDetalhe" class="bg-rose-50 text-rose-700 px-1.5 py-0.5 rounded font-mono"></code>.<br>
+                Para liberar 100% a gravação pública (sem bloqueio de RLS) e garantir que todas as colunas existam, copie o comando abaixo, cole no <b>SQL Editor</b> do Supabase e clique em <b>Run</b>:
             </p>
-            <pre id="sqlCodigoCriar" class="bg-slate-900 text-emerald-400 p-3.5 rounded-2xl text-[11px] font-mono overflow-x-auto">CREATE TABLE IF NOT EXISTS placas (
+            <pre id="sqlCodigoCriar" class="bg-slate-900 text-emerald-400 p-3.5 rounded-2xl text-[11px] font-mono overflow-x-auto max-h-64">-- 1. Cria as tabelas caso não existam
+CREATE TABLE IF NOT EXISTS public.placas (
   codigo TEXT PRIMARY KEY,
   status TEXT DEFAULT 'Disponível',
   empresa TEXT,
@@ -549,7 +553,7 @@
   obs TEXT
 );
 
-CREATE TABLE IF NOT EXISTS historico (
+CREATE TABLE IF NOT EXISTS public.historico (
   id SERIAL PRIMARY KEY,
   data TEXT,
   codigo TEXT,
@@ -557,11 +561,35 @@ CREATE TABLE IF NOT EXISTS historico (
   detalhes TEXT
 );
 
-ALTER TABLE placas DISABLE ROW LEVEL SECURITY;
-ALTER TABLE historico DISABLE ROW LEVEL SECURITY;</pre>
-            <div class="flex justify-end gap-2">
+-- 2. Garante que todas as colunas existem (caso a tabela já existisse antes)
+ALTER TABLE public.placas ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'Disponível';
+ALTER TABLE public.placas ADD COLUMN IF NOT EXISTS empresa TEXT;
+ALTER TABLE public.placas ADD COLUMN IF NOT EXISTS responsavel TEXT;
+ALTER TABLE public.placas ADD COLUMN IF NOT EXISTS telefone TEXT;
+ALTER TABLE public.placas ADD COLUMN IF NOT EXISTS cidade TEXT;
+ALTER TABLE public.placas ADD COLUMN IF NOT EXISTS linkgoogle TEXT;
+ALTER TABLE public.placas ADD COLUMN IF NOT EXISTS datavenda TEXT;
+ALTER TABLE public.placas ADD COLUMN IF NOT EXISTS dataativacao TEXT;
+ALTER TABLE public.placas ADD COLUMN IF NOT EXISTS obs TEXT;
+
+-- 3. Libera geral o acesso para leitura e gravação (Desativa RLS e cria Política)
+ALTER TABLE public.placas DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.historico DISABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Acesso Total Placas" ON public.placas;
+CREATE POLICY "Acesso Total Placas" ON public.placas FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Acesso Total Historico" ON public.historico;
+CREATE POLICY "Acesso Total Historico" ON public.historico FOR ALL USING (true) WITH CHECK (true);
+
+GRANT ALL ON TABLE public.placas TO anon, authenticated, service_role;
+GRANT ALL ON TABLE public.historico TO anon, authenticated, service_role;</pre>
+            <div class="flex flex-wrap justify-end gap-2">
                 <button onclick="copiarSqlConfig()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2 rounded-xl text-xs transition flex items-center gap-1.5">
-                    <i class="fa-solid fa-copy"></i> Copiar Comando SQL
+                    <i class="fa-solid fa-copy"></i> 1. Copiar Comando SQL
+                </button>
+                <button onclick="sincronizarCacheLocalComSupabase()" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-4 py-2 rounded-xl text-xs transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-rotate"></i> 2. Já rodei o SQL, Testar e Enviar Agora!
                 </button>
                 <button onclick="document.getElementById('modalSqlAjuda').classList.add('hidden')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-4 py-2 rounded-xl text-xs transition">
                     Fechar
@@ -723,31 +751,66 @@ ALTER TABLE historico DISABLE ROW LEVEL SECURITY;</pre>
                     .order('id', { ascending: false });
                 if (histError) console.warn("Aviso histórico:", histError);
 
-                dadosPlacas = (placasData || []).map(p => ({
+                const placasNuvem = (placasData || []).map(p => ({
                     ...p,
                     linkGoogle: obterLinkPlaca(p),
                     dataVenda: obterDataVendaPlaca(p),
                     dataAtivacao: obterDataAtivacaoPlaca(p)
                 }));
+
+                // Verifica se existem placas criadas localmente que ainda não subiram para o Supabase
+                const cacheLocal = JSON.parse(localStorage.getItem("CACHE_PLACAS") || "[]");
+                const faltamSubir = cacheLocal.filter(loc => !placasNuvem.some(nuv => nuv.codigo === loc.codigo));
+
+                if (faltamSubir.length > 0) {
+                    try {
+                        await upsertPlacasSeguro(faltamSubir);
+                        placasNuvem.push(...faltamSubir);
+                        placasNuvem.sort((a, b) => a.codigo.localeCompare(b.codigo));
+                    } catch (eSync) {
+                        console.warn("Ainda não foi possível subir o cache local automaticamente:", eSync);
+                        document.getElementById('btnForcarSyncNuvem').classList.remove('hidden');
+                    }
+                } else {
+                    document.getElementById('btnForcarSyncNuvem').classList.add('hidden');
+                }
+
+                dadosPlacas = placasNuvem.length > 0 ? placasNuvem : cacheLocal;
                 dadosHistorico = histData || [];
                 
                 localStorage.setItem("CACHE_PLACAS", JSON.stringify(dadosPlacas));
                 localStorage.setItem("CACHE_HISTORICO", JSON.stringify(dadosHistorico));
                 
                 document.getElementById('txtStatusConexao').innerHTML = '🟢 Conectado e Sincronizado (Supabase)';
-                document.getElementById('txtStatusConexao').className = 'text-xs text-emerald-600 font-bold mb-3';
+                document.getElementById('txtStatusConexao').className = 'text-xs text-emerald-600 font-bold mb-2';
                 atualizarInterfaceCompleta();
                 
-                if (exibirMensagem) mostrarAlerta("Sincronizado com o Supabase!");
+                if (exibirMensagem) mostrarAlerta("Sincronizado com o Supabase com sucesso!");
 
             } catch (err) {
                 console.error("Erro Supabase:", err);
-                const msg = err.message || "Tabela 'placas' não encontrada ou RLS ativo";
-                document.getElementById('txtStatusConexao').innerHTML = `⚡ Cache Local Ativo (<button onclick="abrirAjudaSql('${msg.replace(/'/g, "")}')" class="underline text-rose-600 font-bold">Ver comando SQL</button>)`;
-                document.getElementById('txtStatusConexao').className = 'text-xs text-amber-600 font-bold mb-3';
+                const msg = err.message || "Permissão RLS pendente na tabela 'placas'";
+                document.getElementById('txtStatusConexao').innerHTML = `⚡ Cache Local Ativo (<button onclick="abrirAjudaSql('${msg.replace(/'/g, "")}')" class="underline text-rose-600 font-bold">Liberar SQL</button>)`;
+                document.getElementById('txtStatusConexao').className = 'text-xs text-amber-600 font-bold mb-2';
+                document.getElementById('btnForcarSyncNuvem').classList.remove('hidden');
                 if(exibirMensagem) abrirAjudaSql(msg);
             } finally {
                 if(icon) icon.classList.remove('fa-spin');
+            }
+        }
+
+        async function sincronizarCacheLocalComSupabase() {
+            if (!dadosPlacas || dadosPlacas.length === 0) {
+                return carregarDadosSupabase(true);
+            }
+            try {
+                await upsertPlacasSeguro(dadosPlacas);
+                document.getElementById('modalSqlAjuda').classList.add('hidden');
+                document.getElementById('btnForcarSyncNuvem').classList.add('hidden');
+                await carregarDadosSupabase(false);
+                mostrarAlerta(`Todas as ${dadosPlacas.length} placas foram salvas na nuvem do Supabase!`);
+            } catch (err) {
+                abrirAjudaSql(err.message || "Erro de permissão RLS no Supabase");
             }
         }
 
@@ -775,44 +838,46 @@ ALTER TABLE historico DISABLE ROW LEVEL SECURITY;</pre>
         }
 
         // ==========================================
-        // GERADOR DE LINK DE AVALIAÇÃO (PRODUCTMATE API + FALLBACK ANTI-CORS)
+        // GERADOR DE LINK DE AVALIAÇÃO (PRODUCTMATE API + MULTI-PROXY ANTI-CORS)
         // ==========================================
         async function chamarProductmateComFallback(mapsUrl) {
             const endpoint = "https://productmate.com/api/v1/google-review-link";
             const payload = JSON.stringify({ maps_url: mapsUrl });
 
-            // Tentativa 1: Chamada Direta para a API da Productmate
-            try {
-                const resDireta = await fetch(endpoint, {
+            const tentativas = [
+                // 1. Chamada Direta
+                () => fetch(endpoint, {
                     method: "POST",
                     headers: { "Content-Type": "application/json", "Accept": "application/json" },
                     body: payload
-                });
-                const jsonDireto = await resDireta.json().catch(() => null);
-                if (resDireta.ok && jsonDireto && jsonDireto.review_url) {
-                    return { ok: true, data: jsonDireto };
-                }
-            } catch (e) {
-                console.warn("Chamada direta bloqueada por CORS, tentando via Proxy...", e);
-            }
+                }),
+                // 2. Proxy corsproxy.io
+                () => fetch("https://corsproxy.io/?" + encodeURIComponent(endpoint), {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "Accept": "application/json" },
+                    body: payload
+                }),
+                // 3. Proxy codetabs
+                () => fetch("https://api.codetabs.com/v1/proxy/?quest=" + encodeURIComponent(endpoint), {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "Accept": "application/json" },
+                    body: payload
+                })
+            ];
 
-            // Tentativa 2: Via Proxy CORS (corsproxy.io) para contornar bloqueio de navegador no GitHub Pages
-            try {
-                const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(endpoint);
-                const resProxy = await fetch(proxyUrl, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json", "Accept": "application/json" },
-                    body: payload
-                });
-                const jsonProxy = await resProxy.json().catch(() => null);
-                if (resProxy.ok && jsonProxy && jsonProxy.review_url) {
-                    return { ok: true, data: jsonProxy };
+            for (let i = 0; i < tentativas.length; i++) {
+                try {
+                    const res = await tentativas[i]();
+                    const json = await res.json().catch(() => null);
+                    if (json && json.review_url) {
+                        return { ok: true, data: json };
+                    }
+                    if (json && json.error && res.status === 422) {
+                        return { ok: false, error: json.error };
+                    }
+                } catch (e) {
+                    console.warn(`Tentativa ${i + 1} falhou:`, e);
                 }
-                if (jsonProxy && jsonProxy.error) {
-                    return { ok: false, status: resProxy.status, error: jsonProxy.error };
-                }
-            } catch (e2) {
-                console.warn("Tentativa 2 via proxy falhou:", e2);
             }
 
             return { ok: false };
