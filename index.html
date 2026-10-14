@@ -7,12 +7,14 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Placas Pro">
-    <title>Placas Google Pro - PWA</title>
+    <title>Placas Google Pro - Supabase PWA</title>
     
-    <!-- Manifesto PWA Embutido (Single-File PWA) -->
+    <!-- Manifesto PWA Embutido -->
     <link rel="manifest" id="pwa-manifest">
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%232563eb'/><text y='68' x='50' text-anchor='middle' font-size='55' fill='white' font-family='sans-serif' font-weight='bold'>QR</text></svg>">
 
+    <!-- Supabase JS Client, Tailwind e FontAwesome -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
@@ -27,44 +29,47 @@
             .no-print { display: none !important; }
             body { background: white !important; }
         }
-        /* Otimização para toque no celular */
         body { -webkit-tap-highlight-color: transparent; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="bg-slate-50 font-sans text-slate-800 antialiased min-h-screen flex flex-col">
 
+    <!-- TELA DE REDIRECIONAMENTO INSTANTÂNEO PARA CLIENTE FINAL -->
     <div id="telaRedirecionamentoCliente" class="fixed inset-0 bg-slate-900 text-white z-50 hidden flex flex-col items-center justify-center p-6 text-center">
         <div class="max-w-sm w-full bg-slate-800 border border-slate-700 rounded-3xl p-7 shadow-2xl flex flex-col items-center">
             <div id="spinnerRedirect" class="w-14 h-14 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-5"></div>
-            <h2 id="tituloRedirectCliente" class="text-xl font-bold mb-2 text-white">Abrindo Google...</h2>
-            <p class="text-sm text-slate-400 mb-6" id="statusRedirectTexto">Conectando ao perfil oficial de avaliação do estabelecimento.</p>
-            <a id="btnRedirectManual" href="#" target="_top" class="hidden w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 px-6 rounded-2xl shadow-lg shadow-blue-600/40 transition text-sm">
+            <h2 id="tituloRedirectCliente" class="text-xl font-bold mb-2 text-white">Buscando Estabelecimento...</h2>
+            <p class="text-sm text-slate-400 mb-6" id="statusRedirectTexto">Conectando ao banco de dados em tempo real.</p>
+            <a id="btnRedirectManual" href="#" class="hidden w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 px-6 rounded-2xl shadow-lg shadow-blue-600/40 transition text-sm">
                 ⭐ Avaliar Agora no Google
             </a>
         </div>
     </div>
 
+    <!-- CABEÇALHO DO PAINEL -->
     <header class="bg-slate-900 text-white shadow-md sticky top-0 z-40 no-print">
         <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-3">
             <div class="flex items-center space-x-3">
-                <div class="bg-blue-600 p-2.5 rounded-xl shadow-inner text-white flex items-center justify-center">
-                    <i class="fa-solid fa-qrcode text-xl"></i>
+                <div class="bg-emerald-600 p-2.5 rounded-xl shadow-inner text-white flex items-center justify-center">
+                    <i class="fa-solid fa-database text-xl"></i>
                 </div>
                 <div>
                     <div class="flex items-center gap-2">
                         <h1 class="font-bold text-base sm:text-lg leading-tight">Placas Google Pro</h1>
-                        <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full">PWA</span>
+                        <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full">Supabase</span>
                     </div>
-                    <p class="text-[11px] text-slate-400">Venda Porta a Porta & Controle</p>
+                    <p class="text-[11px] text-slate-400">Venda Porta a Porta & Gestão Web</p>
                 </div>
             </div>
             
             <div class="flex items-center gap-2">
                 <button id="btnInstalarPwa" onclick="instalarPWA()" class="hidden bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 shadow-sm">
-                    <i class="fa-solid fa-mobile-screen-button"></i> Instalar App
+                    <i class="fa-solid fa-download"></i> Instalar
                 </button>
-                <button onclick="carregarDados(true)" id="btnSync" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-xl text-xs font-medium border border-slate-700 transition flex items-center gap-1.5 shadow-sm" title="Sincronizar com a Planilha">
-                    <i class="fa-solid fa-rotate text-blue-400" id="syncIcon"></i> <span class="hidden sm:inline">Sincronizar</span>
+                <button onclick="carregarDadosSupabase(true)" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-xl text-xs font-medium border border-slate-700 transition flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-rotate text-emerald-400" id="syncIcon"></i> <span class="hidden sm:inline">Sincronizar</span>
                 </button>
                 <button onclick="abrirModalVendaRapida()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-xs font-semibold shadow-lg shadow-blue-600/30 transition flex items-center gap-1.5">
                     <i class="fa-solid fa-bolt"></i> Ativar Placa
@@ -74,7 +79,7 @@
 
         <div class="bg-slate-900/95 border-t border-slate-800 px-4">
             <div class="max-w-7xl mx-auto flex space-x-1 sm:space-x-4 overflow-x-auto no-scrollbar">
-                <button onclick="mudarAba('dashboard')" id="tab-dashboard" class="tab-btn py-2.5 px-3 border-b-2 border-blue-500 text-blue-400 font-medium text-xs sm:text-sm flex items-center gap-2 whitespace-nowrap transition">
+                <button onclick="mudarAba('dashboard')" id="tab-dashboard" class="tab-btn py-2.5 px-3 border-b-2 border-emerald-500 text-emerald-400 font-medium text-xs sm:text-sm flex items-center gap-2 whitespace-nowrap transition">
                     <i class="fa-solid fa-chart-pie"></i> Painel
                 </button>
                 <button onclick="mudarAba('qrcodes')" id="tab-qrcodes" class="tab-btn py-2.5 px-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200 font-medium text-xs sm:text-sm flex items-center gap-2 whitespace-nowrap transition">
@@ -87,7 +92,7 @@
                     <i class="fa-solid fa-clock-rotate-left"></i> Histórico
                 </button>
                 <button onclick="mudarAba('config')" id="tab-config" class="tab-btn py-2.5 px-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200 font-medium text-xs sm:text-sm flex items-center gap-2 whitespace-nowrap transition">
-                    <i class="fa-solid fa-gear"></i> Lote & API
+                    <i class="fa-solid fa-gear"></i> Lote & API Supabase
                 </button>
             </div>
         </div>
@@ -151,16 +156,13 @@
                 <div class="lg:col-span-2 bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-6 rounded-3xl shadow-xl flex flex-col justify-between relative overflow-hidden">
                     <div class="absolute -right-8 -bottom-8 opacity-10 text-9xl pointer-events-none"><i class="fa-solid fa-bolt"></i></div>
                     <div>
-                        <span class="bg-blue-500/40 text-blue-100 text-[11px] font-semibold px-3 py-1 rounded-full uppercase tracking-wider border border-blue-400/30">Modo Ultra-Rápido GitHub PWA</span>
+                        <span class="bg-blue-500/40 text-blue-100 text-[11px] font-semibold px-3 py-1 rounded-full uppercase tracking-wider border border-blue-400/30">Motor: PostgreSQL via Supabase</span>
                         <h2 class="text-xl sm:text-2xl font-bold mt-3">Venda e Ative na Frente do Cliente</h2>
-                        <p class="text-blue-100 text-xs sm:text-sm mt-1.5 max-w-xl">Escolha a placa física em mãos, cole o link do Google Maps do cliente e salve. Os dados ficam em cache local para abrir instantaneamente e sincronizam em segundo plano com sua planilha.</p>
+                        <p class="text-blue-100 text-xs sm:text-sm mt-1.5 max-w-xl">Escolha a placa física em mãos, cole o link do Google Maps do cliente e salve. A ativação é gravada diretamente no banco de dados e funciona em milissegundos.</p>
                     </div>
                     <div class="mt-5 flex flex-wrap gap-3">
                         <button onclick="abrirModalVendaRapida()" class="bg-white text-blue-700 hover:bg-blue-50 font-bold px-5 py-2.5 rounded-xl text-xs sm:text-sm transition shadow-md flex items-center gap-2">
-                            <i class="fa-solid fa-plus-circle"></i> Ativar Placa Agora
-                        </button>
-                        <button onclick="mudarAba('grafica')" class="bg-blue-700/60 hover:bg-blue-700 text-white font-medium px-4 py-2.5 rounded-xl text-xs sm:text-sm transition border border-blue-400/30 flex items-center gap-2">
-                            <i class="fa-solid fa-print"></i> Exportar p/ Gráfica
+                            <i class="fa-solid fa-plus-circle"></i> Nova Venda / Ativar Placa
                         </button>
                     </div>
                 </div>
@@ -168,18 +170,15 @@
                 <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between">
                     <div>
                         <div class="flex items-center justify-between mb-1">
-                            <h3 class="font-bold text-slate-800 text-sm">Banco de Dados Google Sheets</h3>
-                            <span id="badgeCache" class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-medium">Cache Ativo</span>
+                            <h3 class="font-bold text-slate-800 text-sm">Status Supabase</h3>
+                            <span id="badgeCache" class="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-md font-bold">API Ativa</span>
                         </div>
-                        <p id="txtStatusConexao" class="text-xs text-emerald-600 font-medium mb-3">🟢 Sincronizado</p>
+                        <p id="txtStatusConexao" class="text-xs text-slate-500 font-medium mb-3">Aguardando verificação...</p>
                         <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs text-slate-600 space-y-1">
-                            <div class="font-semibold text-slate-700">Link Base dos QR Codes:</div>
+                            <div class="font-semibold text-slate-700">Link Permanente dos QR Codes:</div>
                             <code id="txtBaseUrl" class="text-[11px] text-blue-600 font-mono break-all block">Carregando...</code>
+                            <p class="text-[10px] text-slate-400 mt-1">Os códigos da gráfica apontarão diretamente para este seu domínio web.</p>
                         </div>
-                    </div>
-                    <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                        <span>Planilha Oficial Conectada</span>
-                        <button onclick="mudarAba('config')" class="text-blue-600 font-semibold hover:underline">Configurar &rarr;</button>
                     </div>
                 </div>
             </div>
@@ -213,14 +212,14 @@
             <div class="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
                 <div>
                     <h2 class="text-lg font-bold text-slate-800">Gestão de Placas e Clientes</h2>
-                    <p class="text-xs text-slate-500">Toque no código para exibir o QR Code ou edite o link de destino a qualquer momento.</p>
+                    <p class="text-xs text-slate-500">Toque no código para exibir o QR Code ou edite o link de destino.</p>
                 </div>
                 <div class="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
                     <div class="relative flex-grow md:w-60">
                         <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400"><i class="fa-solid fa-search text-xs"></i></span>
-                        <input type="text" id="filtroBusca" onkeyup="filtrarTabela()" placeholder="Buscar código, empresa..." class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-blue-500">
+                        <input type="text" id="filtroBusca" onkeyup="filtrarTabela()" placeholder="Buscar código, empresa..." class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-emerald-500">
                     </div>
-                    <select id="filtroStatus" onchange="filtrarTabela()" class="bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs sm:text-sm focus:outline-none focus:border-blue-500">
+                    <select id="filtroStatus" onchange="filtrarTabela()" class="bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs sm:text-sm focus:outline-none focus:border-emerald-500">
                         <option value="">Todos Status</option>
                         <option value="Disponível">Disponível</option>
                         <option value="Vendido">Vendido</option>
@@ -253,15 +252,15 @@
 
         <!-- SEÇÃO: GRÁFICA -->
         <section id="sec-grafica" class="space-y-6 hidden fade-in">
-            <div class="bg-gradient-to-r from-slate-900 to-blue-900 text-white p-6 rounded-3xl shadow-xl flex flex-col md:flex-row justify-between items-center gap-6 no-print">
+            <div class="bg-gradient-to-r from-slate-900 to-emerald-900 text-white p-6 rounded-3xl shadow-xl flex flex-col md:flex-row justify-between items-center gap-6 no-print">
                 <div class="space-y-2">
-                    <span class="bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider">Produção das Placas</span>
-                    <h2 class="text-xl sm:text-2xl font-bold">Exportar QR Codes para a Gráfica</h2>
-                    <p class="text-slate-300 text-xs sm:text-sm max-w-2xl">Todos os QR Codes abaixo são permanentes. Baixe o pacote ZIP com todas as imagens em alta definição (500x500px) prontas para impressão.</p>
+                    <span class="bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider">Kit para Gráfica</span>
+                    <h2 class="text-xl sm:text-2xl font-bold">Exportar QR Codes (ZIP)</h2>
+                    <p class="text-slate-300 text-xs sm:text-sm max-w-2xl">A gráfica precisa apenas de cada QR Code abaixo apontando para o seu link local. Baixe o pacote ZIP com todas as imagens em alta definição prontas para impressão.</p>
                 </div>
                 <div class="flex flex-col sm:flex-row md:flex-col gap-2.5 w-full md:w-auto">
                     <button onclick="baixarZipQrCodes()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-5 py-3 rounded-2xl text-xs sm:text-sm transition shadow-lg flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-file-zipper"></i> Baixar ZIP (.png)
+                        <i class="fa-solid fa-file-zipper"></i> Baixar Lote (ZIP)
                     </button>
                     <button onclick="window.print()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold px-5 py-2.5 rounded-2xl text-xs sm:text-sm transition flex items-center justify-center gap-2">
                         <i class="fa-solid fa-print"></i> Imprimir Folha
@@ -272,8 +271,8 @@
             <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-4 border-b border-slate-100 no-print">
                     <div>
-                        <h3 class="font-bold text-base text-slate-800">Pré-visualização dos QR Codes</h3>
-                        <p class="text-xs text-slate-500">Cada QR Code aponta para o redirecionador dinâmico com o código da placa.</p>
+                        <h3 class="font-bold text-base text-slate-800">Visualização dos QR Codes</h3>
+                        <p class="text-xs text-slate-500">Estes são os QRs definitivos que apontam para o redirecionador PWA.</p>
                     </div>
                     <div class="flex items-center gap-2">
                         <select id="filtroLoteGrafica" onchange="renderizarGridGrafica()" class="bg-slate-50 border border-slate-200 rounded-xl py-1.5 px-3 text-xs focus:outline-none">
@@ -282,7 +281,6 @@
                         </select>
                     </div>
                 </div>
-
                 <div id="gridGraficaQr" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
             </div>
         </section>
@@ -290,8 +288,7 @@
         <!-- SEÇÃO: HISTÓRICO -->
         <section id="sec-historico" class="space-y-5 hidden fade-in">
             <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
-                <h2 class="text-lg font-bold text-slate-800">Histórico de Ativações e Alterações</h2>
-                <p class="text-xs text-slate-500">Registro completo salvo na aba Histórico da sua planilha.</p>
+                <h2 class="text-lg font-bold text-slate-800">Histórico de Movimentações</h2>
             </div>
             <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
                 <div class="overflow-x-auto">
@@ -312,12 +309,30 @@
             </div>
         </section>
 
-        <!-- SEÇÃO: CONFIGURAÇÕES & LOTE -->
+        <!-- SEÇÃO: CONFIGURAÇÕES & SUPABASE -->
         <section id="sec-config" class="space-y-6 hidden fade-in">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-                    <h3 class="text-base font-bold text-slate-800"><i class="fa-solid fa-boxes-stacked text-blue-600 mr-2"></i> Gerar Novo Lote de Placas</h3>
-                    <p class="text-xs text-slate-500">Crie códigos sequenciais rapidamente para mandar imprimir na gráfica.</p>
+                    <h3 class="text-base font-bold text-slate-800"><i class="fa-solid fa-database text-emerald-600 mr-2"></i> Conexão Supabase</h3>
+                    <p class="text-xs text-slate-500">Insira as credenciais do seu projeto Supabase para conectar o banco de dados.</p>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Project URL</label>
+                            <input type="url" id="inputSupaUrl" placeholder="https://xyz.supabase.co" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Anon Public Key</label>
+                            <input type="text" id="inputSupaKey" placeholder="eyJhbGciOiJIUzI1NiIsInR..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <button onclick="salvarCredenciaisSupabase()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 rounded-xl text-sm transition">
+                            Salvar Credenciais
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                    <h3 class="text-base font-bold text-slate-800"><i class="fa-solid fa-boxes-stacked text-blue-600 mr-2"></i> Gerar Novo Lote</h3>
+                    <p class="text-xs text-slate-500">Crie códigos sequenciais no banco para enviar para impressão.</p>
                     <div class="space-y-3 pt-1">
                         <div>
                             <label class="block text-xs font-semibold text-slate-600 mb-1">Prefixo</label>
@@ -326,7 +341,7 @@
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="block text-xs font-semibold text-slate-600 mb-1">Nº Inicial</label>
-                                <input type="number" id="loteInicio" value="160" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+                                <input type="number" id="loteInicio" value="1" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm">
                             </div>
                             <div>
                                 <label class="block text-xs font-semibold text-slate-600 mb-1">Quantidade</label>
@@ -334,24 +349,7 @@
                             </div>
                         </div>
                         <button onclick="gerarLotePlacas()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded-xl text-sm transition shadow-md">
-                            Gerar Lote na Planilha
-                        </button>
-                    </div>
-                </div>
-
-                <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-                    <h3 class="text-base font-bold text-slate-800"><i class="fa-solid fa-cloud-arrow-up text-blue-600 mr-2"></i> Conexão com Apps Script (Backend)</h3>
-                    <p class="text-xs text-slate-500">A URL do seu Google Apps Script já vem configurada abaixo. Quando hospedado no GitHub Pages, o app se comunica diretamente com sua planilha através dela.</p>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">URL Web App (/exec)</label>
-                        <input type="url" id="inputApiUrl" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:border-blue-500">
-                    </div>
-                    <div class="flex gap-2">
-                        <button onclick="salvarApiUrl()" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 rounded-xl text-xs transition">
-                            Salvar URL Backend
-                        </button>
-                        <button onclick="limparCacheLocal()" class="bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold px-4 py-2.5 rounded-xl text-xs transition">
-                            Limpar Cache
+                            Criar Códigos
                         </button>
                     </div>
                 </div>
@@ -365,14 +363,14 @@
         <div class="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-4 fade-in my-8">
             <div class="flex justify-between items-center border-b border-slate-100 pb-3">
                 <h3 class="font-bold text-base sm:text-lg text-slate-800 flex items-center gap-2">
-                    <i class="fa-solid fa-bolt text-blue-600"></i> Venda Rápida & Ativação
+                    <i class="fa-solid fa-bolt text-blue-600"></i> Venda & Ativação
                 </h3>
                 <button onclick="fecharModalVenda()" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
             
             <form id="formVenda" onsubmit="salvarVenda(event)" class="space-y-3.5">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Código da Placa Física *</label>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Código da Placa (Estoque) *</label>
                     <select id="vendaCodigo" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:border-blue-500">
                         <option value="">Selecione a placa...</option>
                     </select>
@@ -402,19 +400,19 @@
 
                 <div class="bg-blue-50 p-3.5 rounded-2xl border border-blue-100 space-y-2">
                     <label class="block text-xs font-bold text-blue-900 flex items-center justify-between">
-                        <span>Link do Google Maps ou Place ID *</span>
-                        <span class="text-[10px] text-blue-600 font-normal">Conversor Automático</span>
+                        <span>Link Bruto do Maps ou Place ID *</span>
+                        <span class="text-[10px] text-blue-600 font-normal">Auto-Conversor</span>
                     </label>
                     <div class="flex gap-2">
-                        <input type="text" id="inputLinkBruto" placeholder="Cole https://maps.app.goo.gl/... ou Place ID" class="w-full p-2 bg-white border border-blue-200 rounded-xl text-xs focus:outline-none focus:border-blue-500">
+                        <input type="text" id="inputLinkBruto" placeholder="Cole https://maps.app.goo.gl/..." class="w-full p-2 bg-white border border-blue-200 rounded-xl text-xs focus:outline-none focus:border-blue-500">
                         <button type="button" onclick="converterLinkGoogleMaps()" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-3.5 py-2 rounded-xl text-xs transition whitespace-nowrap shadow-sm">
-                            <i class="fa-solid fa-wand-magic-sparkles"></i> Aplicar
+                            Converter
                         </button>
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Link Final de Destino (Google) *</label>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Link Final de Avaliação (Google) *</label>
                     <input type="url" id="vendaLinkGoogle" required placeholder="https://..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-blue-500">
                 </div>
 
@@ -425,7 +423,7 @@
 
                 <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
                     <button type="button" onclick="fecharModalVenda()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl text-xs sm:text-sm transition">Cancelar</button>
-                    <button type="submit" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl text-xs sm:text-sm transition shadow-lg shadow-blue-600/30 flex items-center gap-2">
+                    <button type="submit" id="btnSalvarVenda" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl text-xs sm:text-sm transition shadow-lg shadow-blue-600/30 flex items-center gap-2">
                         <i class="fa-solid fa-check"></i> Salvar e Ativar Já
                     </button>
                 </div>
@@ -507,37 +505,33 @@
 
                 <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
                     <button type="button" onclick="fecharModalEditar()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl text-xs sm:text-sm transition">Cancelar</button>
-                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl text-xs sm:text-sm transition shadow-lg">Salvar Alterações</button>
+                    <button type="submit" id="btnSalvarEdicao" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl text-xs sm:text-sm transition shadow-lg">Salvar Alterações</button>
                 </div>
             </form>
         </div>
     </div>
 
     <script>
-        // URL OFICIAL DO SEU APPS SCRIPT JÁ CONFIGURADA COMO PADRÃO
-        const DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycbypxmkRB_XeVanzwHfW9269A5PMeMCNjS2_Ik7R-Z3ejTS4AkgF7N-ivtNf1CVc-51-YA/exec";
-        
-        let API_URL = localStorage.getItem("PLACAS_GAS_URL") || DEFAULT_GAS_URL;
+        // CONFIGURAÇÃO SUPABASE
+        let supaUrl = localStorage.getItem("SUPABASE_URL") || "https://wzisqvjxrhppnwpiftvh.supabase.co";
+        let supaKey = localStorage.getItem("SUPABASE_KEY") || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6aXNxdmp4cmhwcG53cGlmdHZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIwMTI2OTcsImV4cCI6MjEwNzU4ODY5N30.dII5IBmiE9Wm_ZP7ViCvkHqx_YaGoV5eU4iad0zQ4M4";
+        let supaClient = null;
+
         let dadosPlacas = [];
         let dadosHistorico = [];
         let qrAtualUrl = "";
         let deferredPrompt = null;
 
-        // 1. Configuração automática do Manifesto PWA e Service Worker
+        // Inicializar Manifest PWA
         function configurarPWA() {
             const manifest = {
-                name: "Placas Google Pro - Gestão QR",
+                name: "Placas Google Pro - Supabase",
                 short_name: "Placas Pro",
                 start_url: window.location.pathname,
                 display: "standalone",
                 background_color: "#0f172a",
                 theme_color: "#0f172a",
-                icons: [{
-                    src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%232563eb'/><text y='68' x='50' text-anchor='middle' font-size='55' fill='white' font-family='sans-serif' font-weight='bold'>QR</text></svg>",
-                    sizes: "192x192 512x512",
-                    type: "image/svg+xml",
-                    purpose: "any maskable"
-                }]
+                icons: [{ src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%232563eb'/><text y='68' x='50' text-anchor='middle' font-size='55' fill='white' font-family='sans-serif' font-weight='bold'>QR</text></svg>", sizes: "192x192 512x512", type: "image/svg+xml", purpose: "any maskable" }]
             };
             const blob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
             document.getElementById('pwa-manifest').setAttribute('href', URL.createObjectURL(blob));
@@ -559,84 +553,300 @@
             }
         }
 
-        // 2. Inicialização Ultra-Rápida (verifica se é leitura de QR Code ou abertura do painel)
+        function initSupabase() {
+            if (supaUrl && supaKey && window.supabase) {
+                supaClient = window.supabase.createClient(supaUrl, supaKey);
+                return true;
+            }
+            return false;
+        }
+
         window.onload = function() {
             configurarPWA();
             
-            // Verifica se alguém escaneou o QR Code apontando para o GitHub Pages (?r=MM-000157)
+            // LÓGICA DE REDIRECIONAMENTO DE QR CODE
             const urlParams = new URLSearchParams(window.location.search);
             const codigoRedirect = urlParams.get('r');
+            
             if (codigoRedirect) {
                 const codLimpo = codigoRedirect.trim().toUpperCase();
                 document.getElementById('telaRedirecionamentoCliente').classList.remove('hidden');
                 
-                // 1º Tenta encontrar no cache local imediato (se for o seu próprio celular testando)
-                try {
-                    const localPlacas = JSON.parse(localStorage.getItem("CACHE_PLACAS") || "[]");
-                    const pLocal = localPlacas.find(p => String(p.codigo).trim().toUpperCase() === codLimpo);
-                    if (pLocal && pLocal.linkGoogle && pLocal.linkGoogle.length > 4 && pLocal.status !== 'Suspenso') {
-                        executarRedirecionamentoLimpo(pLocal.linkGoogle, pLocal.empresa);
-                        return;
-                    }
-                } catch(e) {}
-
-                // 2º Busca o link de destino via JSON na planilha (SEM abrir o iframe do Apps Script, evitando tela cinza!)
-                fetch(API_URL + "?action=buscar&r=" + encodeURIComponent(codLimpo) + "&t=" + Date.now())
-                    .then(res => res.json())
-                    .then(info => {
-                        if (info && info.link) {
-                            executarRedirecionamentoLimpo(info.link, info.empresa);
-                        } else {
-                            document.getElementById('spinnerRedirect').classList.add('hidden');
-                            document.getElementById('tituloRedirectCliente').innerText = "Placa: " + codLimpo;
-                            document.getElementById('statusRedirectTexto').innerText = "Esta placa ainda não possui um link de avaliação ativo na planilha.";
-                        }
-                    })
-                    .catch(() => {
-                        // Fallback caso falhe o JSON
-                        window.top.location.href = API_URL + "?r=" + encodeURIComponent(codLimpo);
-                    });
+                if (initSupabase()) {
+                    buscarEDirecionarSupabase(codLimpo);
+                } else {
+                    document.getElementById('statusRedirectTexto').innerText = "Sistema não configurado no banco de dados ainda.";
+                    document.getElementById('spinnerRedirect').classList.add('hidden');
+                }
                 return;
             }
 
-            document.getElementById('inputApiUrl').value = API_URL;
+            // MODO PAINEL ADMIN
+            document.getElementById('inputSupaUrl').value = supaUrl;
+            document.getElementById('inputSupaKey').value = supaKey;
+            
+            // Carrega do Cache Local imediatamente
+            try {
+                dadosPlacas = JSON.parse(localStorage.getItem("CACHE_PLACAS") || "[]");
+                dadosHistorico = JSON.parse(localStorage.getItem("CACHE_HISTORICO") || "[]");
+                atualizarInterfaceCompleta();
+            } catch (e) {}
 
-            // Carrega imediatamente do Cache Local (0.1 segundo) enquanto busca novidades na planilha
-            const cachePlacas = localStorage.getItem("CACHE_PLACAS");
-            const cacheHist = localStorage.getItem("CACHE_HISTORICO");
-            if (cachePlacas) {
-                try {
-                    dadosPlacas = JSON.parse(cachePlacas);
-                    dadosHistorico = JSON.parse(cacheHist || "[]");
-                    atualizarInterfaceCompleta();
-                } catch (e) {}
+            if (initSupabase()) {
+                carregarDadosSupabase(false);
+            } else {
+                document.getElementById('txtStatusConexao').innerHTML = '⚠️ Conecte o Supabase na aba de Configurações.';
+                document.getElementById('txtStatusConexao').className = 'text-xs text-rose-600 font-bold mb-3';
+                mudarAba('config');
             }
-
-            // Sincroniza em segundo plano com o Google Sheets
-            carregarDados(false);
         };
 
-        function executarRedirecionamentoLimpo(urlDestino, nomeEmpresa) {
-            let linkFinal = urlDestino.trim();
-            if (!/^https?:\/\//i.test(linkFinal)) linkFinal = 'https://' + linkFinal;
+        // ==========================================
+        // REDIRECIONAMENTO CLIENTE VIA SUPABASE
+        // ==========================================
+        async function buscarEDirecionarSupabase(codigo) {
+            try {
+                const { data, error } = await supaClient
+                    .from('placas')
+                    .select('linkGoogle, empresa, status')
+                    .eq('codigo', codigo)
+                    .single();
 
-            if (nomeEmpresa) {
-                document.getElementById('tituloRedirectCliente').innerText = nomeEmpresa;
+                if (error || !data || data.status === 'Suspenso' || !data.linkGoogle) {
+                    throw new Error("Não ativado ou suspenso.");
+                }
+
+                let linkFinal = data.linkGoogle.trim();
+                if (!/^https?:\/\//i.test(linkFinal)) linkFinal = 'https://' + linkFinal;
+
+                if (data.empresa) document.getElementById('tituloRedirectCliente').innerText = data.empresa;
+                
+                const btn = document.getElementById('btnRedirectManual');
+                btn.href = linkFinal;
+                btn.classList.remove('hidden');
+
+                window.location.replace(linkFinal);
+
+            } catch (err) {
+                console.error(err);
+                document.getElementById('spinnerRedirect').classList.add('hidden');
+                document.getElementById('tituloRedirectCliente').innerText = "Placa: " + codigo;
+                document.getElementById('statusRedirectTexto').innerText = "Esta placa não possui um link de avaliação ativo no momento.";
             }
-            const btn = document.getElementById('btnRedirectManual');
-            btn.href = linkFinal;
-            btn.classList.remove('hidden');
-
-            // Redireciona diretamente na janela principal do navegador (abre o app do Google Maps na hora!)
-            window.location.replace(linkFinal);
         }
+
+        // ==========================================
+        // DADOS E SINCRONIZAÇÃO PWA -> SUPABASE
+        // ==========================================
+        async function carregarDadosSupabase(exibirMensagem = false) {
+            if (!supaClient) return;
+            const icon = document.getElementById('syncIcon');
+            if(icon) icon.classList.add('fa-spin');
+            document.getElementById('txtStatusConexao').innerHTML = '🔄 Consultando Supabase...';
+
+            try {
+                // Fetch Plates
+                const { data: placasData, error: placasError } = await supaClient.from('placas').select('*');
+                if (placasError) throw placasError;
+                
+                // Fetch History
+                const { data: histData, error: histError } = await supaClient.from('historico').select('*').order('id', { ascending: false });
+                if (histError) throw histError;
+
+                dadosPlacas = placasData || [];
+                dadosHistorico = histData || [];
+                
+                localStorage.setItem("CACHE_PLACAS", JSON.stringify(dadosPlacas));
+                localStorage.setItem("CACHE_HISTORICO", JSON.stringify(dadosHistorico));
+                
+                document.getElementById('txtStatusConexao').innerHTML = '🟢 Conectado e Sincronizado (Supabase)';
+                document.getElementById('txtStatusConexao').className = 'text-xs text-emerald-600 font-bold mb-3';
+                atualizarInterfaceCompleta();
+                
+                if (exibirMensagem) mostrarAlerta("Sincronizado com o Supabase!");
+
+            } catch (err) {
+                console.error("Erro Supabase:", err);
+                document.getElementById('txtStatusConexao').innerHTML = '⚡ Erro de conexão, usando cache offline';
+                document.getElementById('txtStatusConexao').className = 'text-xs text-amber-600 font-bold mb-3';
+                if(exibirMensagem) mostrarAlerta("Erro ao sincronizar. Verifique a internet e as credenciais.", "erro");
+            } finally {
+                if(icon) icon.classList.remove('fa-spin');
+            }
+        }
+
+        async function gravarHistorico(codigo, acao, detalhes) {
+            if(!supaClient) return;
+            const dataHora = new Date().toLocaleString('pt-BR');
+            await supaClient.from('historico').insert([{ data: dataHora, codigo, acao, detalhes }]);
+        }
+
+        // ==========================================
+        // FUNÇÕES DO PAINEL ADMIN
+        // ==========================================
+
+        function salvarCredenciaisSupabase() {
+            const url = document.getElementById('inputSupaUrl').value.trim();
+            const key = document.getElementById('inputSupaKey').value.trim();
+            if (!url || !key) return mostrarAlerta("Preencha URL e Key.", "erro");
+            
+            supaUrl = url;
+            supaKey = key;
+            localStorage.setItem("SUPABASE_URL", supaUrl);
+            localStorage.setItem("SUPABASE_KEY", supaKey);
+            
+            initSupabase();
+            mostrarAlerta("Credenciais salvas! Conectando...");
+            carregarDadosSupabase(true);
+        }
+
+        function obterUrlBaseQr() {
+            // A base do QR Code será a URL onde o seu PWA estiver hospedado (ex: GitHub Pages)
+            return window.location.origin + window.location.pathname + "?r=";
+        }
+
+        function converterLinkGoogleMaps() {
+            const bruto = document.getElementById('inputLinkBruto').value.trim();
+            if (!bruto) return mostrarAlerta("Cole o link do Google Maps ou Place ID.", "erro");
+            
+            if (!bruto.startsWith('http') && bruto.length > 10) {
+                document.getElementById('vendaLinkGoogle').value = `https://search.google.com/local/writereview?placeid=${bruto}`;
+            } else {
+                document.getElementById('vendaLinkGoogle').value = bruto;
+            }
+            mostrarAlerta("Link extraído!");
+        }
+
+        async function salvarVenda(e) {
+            e.preventDefault();
+            if(!supaClient) return mostrarAlerta("Conecte o Supabase primeiro.", "erro");
+            
+            const btn = document.getElementById('btnSalvarVenda');
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Salvando...';
+            btn.disabled = true;
+
+            const placaObj = {
+                codigo: document.getElementById('vendaCodigo').value,
+                status: 'Ativo',
+                empresa: document.getElementById('vendaEmpresa').value.trim(),
+                responsavel: document.getElementById('vendaResponsavel').value.trim(),
+                telefone: document.getElementById('vendaTelefone').value.trim(),
+                cidade: document.getElementById('vendaCidade').value.trim(),
+                linkGoogle: document.getElementById('vendaLinkGoogle').value.trim(),
+                dataVenda: new Date().toISOString().split('T')[0],
+                dataAtivacao: new Date().toISOString().split('T')[0],
+                obs: document.getElementById('vendaObs').value.trim()
+            };
+
+            try {
+                // Upsert on Supabase (Insere ou Atualiza pela Primary Key 'codigo')
+                const { error } = await supaClient.from('placas').upsert([placaObj]);
+                if (error) throw error;
+                
+                await gravarHistorico(placaObj.codigo, "Venda & Ativação", `Cliente: ${placaObj.empresa}`);
+                
+                fecharModalVenda();
+                mostrarAlerta(`Placa ${placaObj.codigo} ativada no banco de dados!`);
+                carregarDadosSupabase(false);
+
+            } catch (err) {
+                console.error(err);
+                mostrarAlerta("Erro ao salvar no banco.", "erro");
+            } finally {
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Salvar e Ativar Já';
+                btn.disabled = false;
+            }
+        }
+
+        async function salvarEdicao(e) {
+            e.preventDefault();
+            if(!supaClient) return;
+
+            const btn = document.getElementById('btnSalvarEdicao');
+            btn.innerHTML = 'Salvando...';
+            btn.disabled = true;
+
+            const cod = document.getElementById('editCodigo').value;
+            
+            // Mantém os dados antigos para as datas, alterando apenas os campos editáveis
+            const pAnterior = dadosPlacas.find(p => p.codigo === cod) || {};
+
+            const placaObj = {
+                codigo: cod,
+                status: document.getElementById('editStatus').value,
+                empresa: document.getElementById('editEmpresa').value.trim(),
+                responsavel: document.getElementById('editResponsavel').value.trim(),
+                telefone: document.getElementById('editTelefone').value.trim(),
+                cidade: pAnterior.cidade || "",
+                linkGoogle: document.getElementById('editLinkGoogle').value.trim(),
+                dataVenda: pAnterior.dataVenda || "",
+                dataAtivacao: pAnterior.dataAtivacao || "",
+                obs: document.getElementById('editObs').value.trim()
+            };
+
+            try {
+                const { error } = await supaClient.from('placas').upsert([placaObj]);
+                if (error) throw error;
+                
+                await gravarHistorico(cod, "Edição", `Status: ${placaObj.status}`);
+                
+                fecharModalEditar();
+                mostrarAlerta(`Placa ${cod} atualizada!`);
+                carregarDadosSupabase(false);
+            } catch (err) {
+                console.error(err);
+                mostrarAlerta("Erro ao atualizar placa.", "erro");
+            } finally {
+                btn.innerHTML = 'Salvar Alterações';
+                btn.disabled = false;
+            }
+        }
+
+        async function gerarLotePlacas() {
+            if(!supaClient) return mostrarAlerta("Conecte o Supabase.", "erro");
+            
+            const prefixo = document.getElementById('lotePrefixo').value.trim();
+            const inicio = parseInt(document.getElementById('loteInicio').value);
+            const qtd = parseInt(document.getElementById('loteQtd').value);
+
+            let novos = [];
+            for(let i = 0; i < qtd; i++) {
+                let codigo = prefixo + (inicio + i).toString().padStart(6, '0');
+                if(!dadosPlacas.some(p => p.codigo === codigo)) {
+                    novos.push({
+                        codigo, status: 'Disponível', empresa: '', responsavel: '',
+                        telefone: '', cidade: '', linkGoogle: '', dataVenda: '', dataAtivacao: '', obs: ''
+                    });
+                }
+            }
+
+            if (novos.length === 0) return mostrarAlerta("Códigos já existem.", "erro");
+
+            try {
+                const { error } = await supaClient.from('placas').insert(novos);
+                if (error) throw error;
+
+                await gravarHistorico("LOTE", "Geração de Placas", `${novos.length} códigos criados`);
+                
+                mostrarAlerta(`Lote de ${novos.length} placas gravado no banco!`);
+                carregarDadosSupabase(false);
+                mudarAba('grafica');
+            } catch(err) {
+                console.error(err);
+                mostrarAlerta("Erro ao inserir lote no Supabase.", "erro");
+            }
+        }
+
+        // ==========================================
+        // CONTROLES DE INTERFACE (UI)
+        // ==========================================
 
         function mudarAba(aba) {
             document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('border-blue-500', 'text-blue-400');
+                btn.classList.remove('border-emerald-500', 'text-emerald-400');
                 btn.classList.add('border-transparent', 'text-slate-400');
             });
-            document.getElementById('tab-' + aba).classList.add('border-blue-500', 'text-blue-400');
+            document.getElementById('tab-' + aba).classList.add('border-emerald-500', 'text-emerald-400');
             document.getElementById('tab-' + aba).classList.remove('border-transparent', 'text-slate-400');
 
             ['dashboard', 'qrcodes', 'grafica', 'historico', 'config'].forEach(sec => {
@@ -654,109 +864,7 @@
             alerta.classList.remove('hidden');
             setTimeout(() => fecharAlerta(), 4000);
         }
-
-        function fecharAlerta() {
-            document.getElementById('alertaGlobal').classList.add('hidden');
-        }
-
-        function salvarApiUrl() {
-            const val = document.getElementById('inputApiUrl').value.trim();
-            if (!val) return mostrarAlerta("Informe uma URL válida.", "erro");
-            API_URL = val;
-            localStorage.setItem("PLACAS_GAS_URL", API_URL);
-            mostrarAlerta("URL conectada com sucesso!");
-            carregarDados(true);
-        }
-
-        function limparCacheLocal() {
-            localStorage.removeItem("CACHE_PLACAS");
-            localStorage.removeItem("CACHE_HISTORICO");
-            mostrarAlerta("Cache limpo! Recarregando da planilha...");
-            carregarDados(true);
-        }
-
-        function converterLinkGoogleMaps() {
-            const bruto = document.getElementById('inputLinkBruto').value.trim();
-            if (!bruto) return mostrarAlerta("Cole o link do Google Maps ou Place ID.", "erro");
-
-            // Se o usuário colou um Place ID puro (ex: ChIJ...), gera link direto de avaliação
-            if (!bruto.startsWith('http') && bruto.length > 10) {
-                document.getElementById('vendaLinkGoogle').value = `https://search.google.com/local/writereview?placeid=${bruto}`;
-            } else {
-                document.getElementById('vendaLinkGoogle').value = bruto;
-            }
-            mostrarAlerta("Link aplicado com sucesso!");
-        }
-
-        function carregarDados(exibirMensagem = false) {
-            const icon = document.getElementById('syncIcon');
-            if(icon) icon.classList.add('fa-spin');
-            document.getElementById('txtStatusConexao').innerHTML = '🔄 Sincronizando com a Planilha...';
-
-            fetch(API_URL + "?action=obterDados&t=" + Date.now(), { method: "GET", redirect: "follow" })
-            .then(res => res.json())
-            .then(data => {
-                if(data && data.sucesso) {
-                    dadosPlacas = data.placas || [];
-                    dadosHistorico = data.historico || [];
-                    localStorage.setItem("CACHE_PLACAS", JSON.stringify(dadosPlacas));
-                    localStorage.setItem("CACHE_HISTORICO", JSON.stringify(dadosHistorico));
-                    
-                    document.getElementById('txtStatusConexao').innerHTML = '🟢 Sincronizado com Google Sheets';
-                    document.getElementById('txtStatusConexao').className = 'text-xs text-emerald-600 font-medium mb-3';
-                    atualizarInterfaceCompleta();
-                    if(exibirMensagem) mostrarAlerta("Planilha sincronizada com sucesso!");
-                }
-            })
-            .catch(err => {
-                console.warn("Modo Offline/Cache:", err);
-                document.getElementById('txtStatusConexao').innerHTML = '⚡ Usando Cache Rápido Local';
-                if (dadosPlacas.length === 0) {
-                    dadosPlacas = [
-                        { codigo: "MM-000157", status: "Disponível", empresa: "", responsavel: "", telefone: "", cidade: "", linkGoogle: "", dataVenda: "", dataAtivacao: "", obs: "" }
-                    ];
-                    atualizarInterfaceCompleta();
-                }
-            })
-            .finally(() => {
-                if(icon) icon.classList.remove('fa-spin');
-            });
-        }
-
-        function enviarRequisicaoSheets(payload, onSuccess) {
-            // Salva imediatamente no cache local para resposta instantânea na tela
-            localStorage.setItem("CACHE_PLACAS", JSON.stringify(dadosPlacas));
-            localStorage.setItem("CACHE_HISTORICO", JSON.stringify(dadosHistorico));
-            atualizarInterfaceCompleta();
-            if (onSuccess) onSuccess();
-
-            const icon = document.getElementById('syncIcon');
-            if(icon) icon.classList.add('fa-spin');
-
-            // Envia em segundo plano via text/plain para evitar bloqueio de CORS preflight no Apps Script
-            fetch(API_URL, {
-                method: "POST",
-                headers: { "Content-Type": "text/plain;charset=utf-8" },
-                body: JSON.stringify(payload)
-            })
-            .then(() => {
-                setTimeout(() => carregarDados(false), 1200);
-            })
-            .catch(err => console.error("Erro sync background:", err))
-            .finally(() => {
-                if(icon) icon.classList.remove('fa-spin');
-            });
-        }
-
-        function obterUrlBaseQr() {
-            // Se você estiver rodando no GitHub Pages (ex: https://seu-usuario.github.io/placas/),
-            // gera os QR Codes apontando para o GitHub Pages, que NUNCA sofre bloqueio de tela cinza!
-            if (window.location.hostname.includes("github.io")) {
-                return window.location.origin + window.location.pathname + "?r=";
-            }
-            // Caso contrário, usa a URL do Apps Script
-            return API_URL.split("?")[0] + "?r=";
-        }
+        function fecharAlerta() { document.getElementById('alertaGlobal').classList.add('hidden'); }
 
         function atualizarInterfaceCompleta() {
             document.getElementById('stat-total').innerText = dadosPlacas.length;
@@ -772,7 +880,10 @@
             preencherTabelaDashboard();
             preencherTabelaGeral(dadosPlacas);
             preencherTabelaHistorico();
-            preencherSelectPlacasDisponiveis();
+            
+            const select = document.getElementById('vendaCodigo');
+            select.innerHTML = `<option value="">Selecione a placa...</option>` +
+                dadosPlacas.map(p => `<option value="${p.codigo}">${p.codigo} — [${p.status}] ${p.empresa ? '(' + p.empresa + ')' : ''}</option>`).join('');
         }
 
         function badgeStatus(status) {
@@ -789,58 +900,44 @@
             const tbody = document.getElementById('tabelaDashboardRecentes');
             const recentes = [...dadosPlacas].filter(p => p.empresa).slice(0, 6);
             if (recentes.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400">Nenhuma placa ativada ainda. Clique em "Ativar Placa" para começar.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400">Nenhuma placa no banco.</td></tr>`;
                 return;
             }
             tbody.innerHTML = recentes.map(p => `
                 <tr class="hover:bg-slate-50 transition">
                     <td class="p-3.5 font-mono font-bold text-blue-600">
-                        <button onclick="abrirModalQr('${p.codigo}')" class="hover:underline flex items-center gap-1.5">
-                            <i class="fa-solid fa-qrcode text-xs"></i> ${p.codigo}
-                        </button>
+                        <button onclick="abrirModalQr('${p.codigo}')" class="hover:underline flex items-center gap-1.5"><i class="fa-solid fa-qrcode text-xs"></i> ${p.codigo}</button>
                     </td>
                     <td class="p-3.5">
                         <div class="font-semibold text-slate-800">${p.empresa}</div>
-                        <div class="text-[11px] text-slate-400">${p.responsavel || ''} ${p.telefone ? '• ' + p.telefone : ''}</div>
+                        <div class="text-[11px] text-slate-400">${p.telefone || ''}</div>
                     </td>
                     <td class="p-3.5"><span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${badgeStatus(p.status)}">${p.status}</span></td>
-                    <td class="p-3.5 text-xs text-slate-500 truncate max-w-[180px]">
-                        <a href="${p.linkGoogle}" target="_blank" class="text-blue-500 hover:underline">${p.linkGoogle || '-'}</a>
-                    </td>
-                    <td class="p-3.5 text-right">
-                        <button onclick="abrirModalEditar('${p.codigo}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl text-xs font-medium">Editar</button>
-                    </td>
+                    <td class="p-3.5 text-xs text-slate-500 truncate max-w-[180px]"><a href="${p.linkGoogle}" target="_blank" class="text-blue-500 hover:underline">${p.linkGoogle || '-'}</a></td>
+                    <td class="p-3.5 text-right"><button onclick="abrirModalEditar('${p.codigo}')" class="bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl text-xs">Editar</button></td>
                 </tr>
             `).join('');
         }
 
         function preencherTabelaGeral(lista) {
             const tbody = document.getElementById('tabelaGeralPlacas');
-            if (lista.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-400">Nenhuma placa encontrada.</td></tr>`;
-                return;
-            }
+            if (lista.length === 0) return tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-400">Vazio.</td></tr>`;
+            
             tbody.innerHTML = lista.map(p => `
                 <tr class="hover:bg-slate-50 transition">
                     <td class="p-3.5 font-mono font-bold text-blue-600">
-                        <button onclick="abrirModalQr('${p.codigo}')" class="hover:underline flex items-center gap-1.5">
-                            <i class="fa-solid fa-qrcode text-xs"></i> ${p.codigo}
-                        </button>
+                        <button onclick="abrirModalQr('${p.codigo}')" class="hover:underline flex items-center gap-1.5"><i class="fa-solid fa-qrcode text-xs"></i> ${p.codigo}</button>
                     </td>
                     <td class="p-3.5"><span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${badgeStatus(p.status)}">${p.status}</span></td>
                     <td class="p-3.5">
-                        <div class="font-semibold text-slate-800">${p.empresa || '<span class="text-slate-400 italic font-normal">Em estoque</span>'}</div>
-                        <div class="text-[11px] text-slate-400">${p.telefone || ''} ${p.cidade ? '• ' + p.cidade : ''}</div>
+                        <div class="font-semibold text-slate-800">${p.empresa || '<span class="text-slate-400 italic font-normal">Estoque</span>'}</div>
+                        <div class="text-[11px] text-slate-400">${p.cidade || ''}</div>
                     </td>
-                    <td class="p-3.5 text-xs text-slate-500 max-w-[200px] truncate">
-                        ${p.linkGoogle ? `<a href="${p.linkGoogle}" target="_blank" class="text-blue-500 hover:underline">${p.linkGoogle}</a>` : '-'}
-                    </td>
-                    <td class="p-3.5 text-[11px] text-slate-500">
-                        <div>Ativ: ${p.dataAtivacao || '-'}</div>
-                    </td>
+                    <td class="p-3.5 text-xs text-slate-500 max-w-[200px] truncate">${p.linkGoogle ? `<a href="${p.linkGoogle}" target="_blank" class="text-blue-500 hover:underline">${p.linkGoogle}</a>` : '-'}</td>
+                    <td class="p-3.5 text-[11px] text-slate-500">Ativ: ${p.dataAtivacao || '-'}</td>
                     <td class="p-3.5 text-right space-x-1 whitespace-nowrap">
-                        <button onclick="abrirModalEditar('${p.codigo}')" class="bg-blue-50 hover:bg-blue-100 text-blue-600 px-2.5 py-1.5 rounded-xl text-xs" title="Editar"><i class="fa-solid fa-pen"></i></button>
-                        <button onclick="copiarLinkRedirect('${p.codigo}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1.5 rounded-xl text-xs" title="Copiar Link QR"><i class="fa-solid fa-link"></i></button>
+                        <button onclick="abrirModalEditar('${p.codigo}')" class="bg-blue-50 text-blue-600 px-2.5 py-1.5 rounded-xl text-xs"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick="copiarLinkRedirect('${p.codigo}')" class="bg-slate-100 text-slate-700 px-2.5 py-1.5 rounded-xl text-xs"><i class="fa-solid fa-link"></i></button>
                     </td>
                 </tr>
             `).join('');
@@ -848,11 +945,8 @@
 
         function preencherTabelaHistorico() {
             const tbody = document.getElementById('tabelaHistorico');
-            if (dadosHistorico.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-400">Nenhum histórico registrado.</td></tr>`;
-                return;
-            }
-            tbody.innerHTML = [...dadosHistorico].reverse().map(h => `
+            if (dadosHistorico.length === 0) return tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-400">Vazio.</td></tr>`;
+            tbody.innerHTML = dadosHistorico.map(h => `
                 <tr class="hover:bg-slate-50">
                     <td class="p-3.5 text-xs text-slate-500 font-mono">${h.data}</td>
                     <td class="p-3.5 font-mono font-bold text-blue-600">${h.codigo}</td>
@@ -862,23 +956,14 @@
             `).join('');
         }
 
-        function preencherSelectPlacasDisponiveis() {
-            const select = document.getElementById('vendaCodigo');
-            select.innerHTML = `<option value="">Selecione a placa...</option>` +
-                dadosPlacas.map(p => `<option value="${p.codigo}">${p.codigo} — [${p.status}] ${p.empresa ? '(' + p.empresa + ')' : ''}</option>`).join('');
-        }
-
         function filtrarTabela() {
             const termo = document.getElementById('filtroBusca').value.toLowerCase();
             const statusFiltro = document.getElementById('filtroStatus').value;
-            const filtradas = dadosPlacas.filter(p => {
-                const matchTermo = p.codigo.toLowerCase().includes(termo) ||
-                                   (p.empresa && p.empresa.toLowerCase().includes(termo)) ||
-                                   (p.cidade && p.cidade.toLowerCase().includes(termo));
+            preencherTabelaGeral(dadosPlacas.filter(p => {
+                const matchTermo = p.codigo.toLowerCase().includes(termo) || (p.empresa && p.empresa.toLowerCase().includes(termo));
                 const matchStatus = statusFiltro === "" || p.status === statusFiltro;
                 return matchTermo && matchStatus;
-            });
-            preencherTabelaGeral(filtradas);
+            }));
         }
 
         function renderizarGridGrafica() {
@@ -886,18 +971,13 @@
             const filtro = document.getElementById('filtroLoteGrafica').value;
             const lista = filtro === 'todos' ? dadosPlacas : dadosPlacas.filter(p => p.status === filtro);
             
-            if(lista.length === 0) {
-                grid.innerHTML = `<div class="col-span-full py-12 text-center text-slate-400">Nenhuma placa neste filtro.</div>`;
-                return;
-            }
+            if(lista.length === 0) return grid.innerHTML = `<div class="col-span-full py-12 text-center text-slate-400">Vazio.</div>`;
 
             const baseRedirectUrl = obterUrlBaseQr();
             grid.innerHTML = lista.map((p, idx) => `
                 <div class="bg-slate-50 border border-slate-200 p-3.5 rounded-2xl flex flex-col items-center text-center space-y-2 shadow-sm">
                     <span class="font-mono font-bold text-slate-800 text-xs">${p.codigo}</span>
-                    <div class="bg-white p-2 rounded-xl border border-slate-200">
-                        <canvas id="qr-grafica-${idx}" class="w-24 h-24"></canvas>
-                    </div>
+                    <div class="bg-white p-2 rounded-xl border border-slate-200"><canvas id="qr-grafica-${idx}" class="w-24 h-24"></canvas></div>
                     <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold ${badgeStatus(p.status)}">${p.status}</span>
                 </div>
             `).join('');
@@ -905,16 +985,14 @@
             setTimeout(() => {
                 lista.forEach((p, idx) => {
                     const canvas = document.getElementById(`qr-grafica-${idx}`);
-                    if(canvas) {
-                        new QRious({ element: canvas, value: baseRedirectUrl + p.codigo, size: 160, level: 'H' });
-                    }
+                    if(canvas) new QRious({ element: canvas, value: baseRedirectUrl + p.codigo, size: 160, level: 'H' });
                 });
             }, 50);
         }
 
         function baixarZipQrCodes() {
             const zip = new JSZip();
-            const folder = zip.folder("qr-codes-placas");
+            const folder = zip.folder("qr-codes-placas-supa");
             const baseRedirectUrl = obterUrlBaseQr();
             const canvasTemp = document.createElement('canvas');
             const qrTemp = new QRious({ element: canvasTemp, size: 600, level: 'H' });
@@ -925,62 +1003,13 @@
                 folder.file(`${p.codigo}.png`, base64Data, {base64: true});
             });
 
-            zip.generateAsync({type:"blob"}).then(content => {
-                saveAs(content, "QR-Codes-Grafica-Placas.zip");
-                mostrarAlerta("Pacote ZIP gerado com sucesso!");
-            });
+            zip.generateAsync({type:"blob"}).then(content => saveAs(content, "QR-Codes-Grafica-Placas.zip"));
         }
 
-        function abrirModalVendaRapida() {
-            document.getElementById('formVenda').reset();
-            preencherSelectPlacasDisponiveis();
-            document.getElementById('modalVenda').classList.remove('hidden');
-        }
+        // Modais de UI
+        function abrirModalVendaRapida() { document.getElementById('formVenda').reset(); document.getElementById('modalVenda').classList.remove('hidden'); }
         function fecharModalVenda() { document.getElementById('modalVenda').classList.add('hidden'); }
-
-        function salvarVenda(e) {
-            e.preventDefault();
-            const codigo = document.getElementById('vendaCodigo').value;
-            const empresa = document.getElementById('vendaEmpresa').value.trim();
-            const responsavel = document.getElementById('vendaResponsavel').value.trim();
-            const telefone = document.getElementById('vendaTelefone').value.trim();
-            const cidade = document.getElementById('vendaCidade').value.trim();
-            const linkGoogle = document.getElementById('vendaLinkGoogle').value.trim();
-            const obs = document.getElementById('vendaObs').value.trim();
-            const hoje = new Date().toISOString().split('T')[0];
-
-            let placa = dadosPlacas.find(p => p.codigo === codigo);
-            if (placa) {
-                placa.status = 'Ativo';
-                placa.empresa = empresa;
-                placa.responsavel = responsavel;
-                placa.telefone = telefone;
-                placa.cidade = cidade;
-                placa.linkGoogle = linkGoogle;
-                placa.dataVenda = hoje;
-                placa.dataAtivacao = hoje;
-                placa.obs = obs;
-            }
-
-            dadosHistorico.push({
-                data: new Date().toLocaleString('pt-BR'),
-                codigo: codigo,
-                acao: "Venda & Ativação",
-                detalhes: `Ativado para ${empresa}`
-            });
-
-            fecharModalVenda();
-            mostrarAlerta(`Placa ${codigo} ativada instantaneamente!`);
-
-            enviarRequisicaoSheets({
-                action: "salvarPlaca",
-                codigo, status: "Ativo", empresa, responsavel, telefone, cidade, linkGoogle,
-                dataVenda: hoje, dataAtivacao: hoje, obs,
-                acaoHistorico: "Venda & Ativação PWA",
-                detalhesHistorico: `Cliente: ${empresa}`
-            });
-        }
-
+        
         function abrirModalEditar(codigo) {
             const p = dadosPlacas.find(item => item.codigo === codigo);
             if (!p) return;
@@ -996,62 +1025,6 @@
         }
         function fecharModalEditar() { document.getElementById('modalEditar').classList.add('hidden'); }
 
-        function salvarEdicao(e) {
-            e.preventDefault();
-            const codigo = document.getElementById('editCodigo').value;
-            let p = dadosPlacas.find(item => item.codigo === codigo);
-            if (!p) return;
-
-            p.status = document.getElementById('editStatus').value;
-            p.empresa = document.getElementById('editEmpresa').value.trim();
-            p.responsavel = document.getElementById('editResponsavel').value.trim();
-            p.telefone = document.getElementById('editTelefone').value.trim();
-            p.linkGoogle = document.getElementById('editLinkGoogle').value.trim();
-            p.obs = document.getElementById('editObs').value.trim();
-
-            fecharModalEditar();
-            mostrarAlerta(`Placa ${codigo} atualizada!`);
-
-            enviarRequisicaoSheets({
-                action: "salvarPlaca",
-                codigo, status: p.status, empresa: p.empresa, responsavel: p.responsavel,
-                telefone: p.telefone, cidade: p.cidade || "", linkGoogle: p.linkGoogle,
-                dataVenda: p.dataVenda || "", dataAtivacao: p.dataAtivacao || "", obs: p.obs,
-                acaoHistorico: "Edição de Destino/Status",
-                detalhesHistorico: `Status: ${p.status} | Empresa: ${p.empresa}`
-            });
-        }
-
-        function gerarLotePlacas() {
-            const prefixo = document.getElementById('lotePrefixo').value.trim();
-            const inicio = parseInt(document.getElementById('loteInicio').value);
-            const qtd = parseInt(document.getElementById('loteQtd').value);
-
-            let novos = [];
-            for(let i = 0; i < qtd; i++) {
-                let codigo = prefixo + (inicio + i).toString().padStart(6, '0');
-                if(!dadosPlacas.some(p => p.codigo === codigo)) {
-                    novos.push({
-                        codigo, status: 'Disponível', empresa: '', responsavel: '',
-                        telefone: '', cidade: '', linkGoogle: '', dataVenda: '', dataAtivacao: '', obs: ''
-                    });
-                }
-            }
-
-            if (novos.length === 0) return mostrarAlerta("Esses códigos já existem na lista.", "erro");
-
-            dadosPlacas.push(...novos);
-            mostrarAlerta(`${novos.length} novas placas geradas!`);
-            mudarAba('grafica');
-
-            enviarRequisicaoSheets({
-                action: "gerarLote",
-                lote: novos,
-                acaoHistorico: "Geração de Lote",
-                detalhesHistorico: `${novos.length} placas criadas`
-            });
-        }
-
         function abrirModalQr(codigo) {
             document.getElementById('qrModalCodigo').innerText = codigo;
             qrAtualUrl = obterUrlBaseQr() + codigo;
@@ -1060,28 +1033,14 @@
             document.getElementById('modalQr').classList.remove('hidden');
         }
         function fecharModalQr() { document.getElementById('modalQr').classList.add('hidden'); }
-
-        function copiarLinkRedirectAtual() {
-            copiarTexto(qrAtualUrl);
-            mostrarAlerta("Link do QR Code copiado!");
-        }
-        function testarRedirectAtual() {
-            window.open(qrAtualUrl, '_blank');
-        }
-        function copiarLinkRedirect(codigo) {
-            copiarTexto(obterUrlBaseQr() + codigo);
-            mostrarAlerta(`Link da placa ${codigo} copiado!`);
-        }
+        function copiarLinkRedirectAtual() { copiarTexto(qrAtualUrl); mostrarAlerta("Copiado!"); }
+        function testarRedirectAtual() { window.open(qrAtualUrl, '_blank'); }
+        function copiarLinkRedirect(codigo) { copiarTexto(obterUrlBaseQr() + codigo); mostrarAlerta("Copiado!"); }
 
         function copiarTexto(texto) {
-            const ta = document.createElement("textarea");
-            ta.value = texto;
-            ta.style.position = "fixed";
-            document.body.appendChild(ta);
-            ta.focus();
-            ta.select();
-            try { document.execCommand('copy'); } catch (e) {}
-            document.body.removeChild(ta);
+            const ta = document.createElement("textarea"); ta.value = texto; ta.style.position = "fixed";
+            document.body.appendChild(ta); ta.focus(); ta.select();
+            try { document.execCommand('copy'); } catch (e) {} document.body.removeChild(ta);
         }
     </script>
 </body>
